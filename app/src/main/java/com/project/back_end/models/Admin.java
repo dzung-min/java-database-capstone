@@ -17,11 +17,11 @@ public class Admin {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @NotNull
+    @NotNull(message = "Username cannot be null")
     @Column(nullable = false)
     private String username;
 
-    @NotNull
+    @NotNull(message = "Password cannot be null")
     @Column(nullable = false)
     @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
