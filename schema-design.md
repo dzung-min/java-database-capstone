@@ -31,3 +31,6 @@
 - id: INT, Primary Key, Auto Increment
 - name: VARCHAR, Not Null
 - password: VARCHAR, Not Null
+
+## MongoDB Collection Design
+
