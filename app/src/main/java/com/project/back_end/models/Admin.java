@@ -16,7 +16,7 @@ public class Admin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @NotNull(message = "Username cannot be null")
     @Column(nullable = false)
     private String username;
@@ -26,7 +26,8 @@ public class Admin {
     @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
-    public Admin() {}
+    public Admin() {
+    }
 
     public Long getId() {
         return id;
