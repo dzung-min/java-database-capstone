@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:lts
+    image: mysql:latest
     container_name: mysql_db
     ports:
       - "3306:3306"
@@ -12,7 +12,7 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: pass
   mongodb:
-    image: mongodb/mongodb-community-server
+    image: mongodb/mongodb-community-server:latest
     container_name: mongodb
     ports:
       - "27017:27017"
@@ -20,7 +20,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: user
       MONGO_INITDB_ROOT_PASSWORD: pass
     volumes:
-      - mongodb_db:/data/db
+      - mongo_db:/data/db
 volumes:
   mysql_db:
-  mongodb_db:
+  mongo_db:
