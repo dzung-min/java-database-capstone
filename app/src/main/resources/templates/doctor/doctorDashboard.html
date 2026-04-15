@@ -1,3 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" th:href="@{/assets/images/logo/logo.png}" />
+    <link rel="stylesheet" th:href="@{/assets/css/adminDashboard.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/doctorDashboard.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+    <title>Doctor Dashboard</title>
+</head>
+<body onload="renderContent()">
+    <div class="container">
+        <div class="wrapper">
+            <div id="header"></div>
+            <div class="main-content">
+                <input type="text" id="searchBar" class="searchBar" placeholder="Search Bar for custom output" />
+                <button id="todayButton"></button>
+                <input type="date" id="datePicker">
+                <table id="patientTable">
+                    <thead class="table-header">
+                        <tr>
+                            <th>Patient ID</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Prescription</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script th:src="@{/assets/js/render.js}" defer></script>
+    <script th:src="@{/assets/js/util.js}" defer></script>
+    <script th:src="@{/assets/js/header.js}" defer></script>
+    <script type="module" th:src="@{/assets/js/doctorDashboard.js}" defer></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
 <!-- doctorDashboard.html -->
 
 <!-- 

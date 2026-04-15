@@ -1,3 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" th:href="@{/assets/images/logo/logo.png}" />
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/adminDashboard.css}">
+    <script th:src="@{/js/render.js}" defer></script>
+    <script th:src="@{/js/util.js}" defer></script>
+    <script th:src="@{/js/components/header.js}" defer></script>
+    <script th:src="@{/js/components/footer.js}" defer></script>
+    <title>Admin Dashboard</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <div id="header"></div>
+            <main class="main-content">
+                <input type="text" id="searchBar" placeholder="search by doctor name" />
+                <select name="cars" id="cars">
+                    <option value="volvo">Volvo</option>
+                    <option value="saab">Saab</option>
+                    <option value="mercedes">Mercedes</option>
+                    <option value="audi">Audi</option>
+                </select>
+                <div id="content"></div>
+                <div id="footer"></div>
+            </main>
+        </div>
+    </div>
+    <div id="modal" class="modal">
+        <span id="closeModal" class="close">&times;</span>
+        <div id="modal-body"></div>
+    </div>
+</body>
+
+</html>
 <!-- adminDashboard.html -->
 
 <!-- 
@@ -106,4 +146,3 @@ with search, filter, and modal functionality.
     * Finish the structure by properly closing all tags.
 
  -->
-
