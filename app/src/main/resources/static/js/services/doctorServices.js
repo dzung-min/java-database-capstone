@@ -1,3 +1,20 @@
+import { API_BASE_URL } from "../config/config.js";
+
+const DOCTOR_API = API_BASE_URL + '/doctor';
+
+async function getDoctors() {
+  try {
+    const resp = await fetch(DOCTOR_API);
+    const doctors = await resp.json();
+    return doctors;
+  } catch (error) {
+    return [];
+  }
+}
+
+async function deleteDoctor(id, token) {
+  
+}
 /*
   Import the base API URL from the config file
   Define a constant DOCTOR_API to hold the full endpoint for doctor-related actions

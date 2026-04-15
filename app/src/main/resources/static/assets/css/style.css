@@ -163,7 +163,7 @@
   }
   
 
-  .modal {
+  #modal {
     display: none;
     position: fixed;
     z-index: 999;
@@ -175,7 +175,7 @@
     background-color: rgba(0,0,0,0.6);
   }
   
-  .modal-content {
+  #modal-body {
     background-color: white;
     margin: auto;
     padding: 30px;
@@ -184,7 +184,7 @@
     position: relative;
   }
   
-  .modal-content h2{
+  #modal-body h2{
     font-size: 32px;
   }
 

@@ -7,11 +7,6 @@
     <link rel="shortcut icon" href="./assets/images/logo/logo.png" type="image/x-icon">
     <link rel="stylesheet" href="./assets/css/index.css">
     <link rel="stylesheet" href="./assets/css/style.css">
-    <script src="./js/util.js" defer></script>
-    <script src="./js/render.js" defer></script>
-    <script src="./js/components/header.js" defer></script>
-    <script src="./js/components/footer.js" defer></script>
-    <script type="module" src="./js/services/index.js" defer></script>
     <title>Select Roles</title>
 </head>
 
@@ -22,8 +17,8 @@
 
             <main class="main-content">
                 <h2>Select Your Role</h2>
-                <button>Admin</button>
-                <button>Doctor</button>
+                <button id="adminLogin">Admin</button>
+                <button id="doctorLogin">Doctor</button>
                 <button>Patient</button>
             </main>
             <div id="footer"></div>
@@ -33,8 +28,14 @@
         <span id="closeModal" class="close"></span>
         <div id="modal-body"></div>
     </div>
-    <script type="module" src="../js/services/adminDashboard.js" defer></script>
-    <script type="module" src="../js/components/doctorCard.js" defer></script>
+    <script src="./js/util.js" defer></script>
+    <script src="./js/render.js" defer></script>
+    <script src="./js/components/header.js" defer></script>
+    <script src="./js/components/footer.js" defer></script>
+    
+    <script type="module" src="./js/services/adminDashboard.js"></script>
+    <script type="module" src="./js/components/doctorCard.js"></script>
+    <script type="module" src="./js/services/index.js"></script>
 </body>
 
 </html>
