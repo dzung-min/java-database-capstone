@@ -2,8 +2,6 @@ package com.project.back_end.services;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators.In;
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.DTO.AppointmentDTO;
@@ -122,7 +120,7 @@ public class PatientService {
     // - Instruction: Ensure that the method correctly filters by doctor's name and
     // patient ID and handles any errors or invalid cases.
 
-    public List<AppointmentDTO> filterByDoctorAndCondition(String doctorName, Integer condition, Long patientId) {
+    public List<AppointmentDTO> filterByDoctorAndCondition(Integer condition, String doctorName, Long patientId) {
         try {
             List<Appointment> appointments = appointmentRepository.filterByDoctorNameAndPatientIdAndStatus(doctorName,
                     patientId, condition);

@@ -1,24 +1,56 @@
 package com.project.back_end.services;
 
+import org.springframework.stereotype.Service;
+
+import com.project.back_end.models.Prescription;
+import com.project.back_end.repo.PrescriptionRepository;
+
+@Service
 public class PrescriptionService {
     
  // 1. **Add @Service Annotation**:
 //    - The `@Service` annotation marks this class as a Spring service component, allowing Spring's container to manage it.
 //    - This class contains the business logic related to managing prescriptions in the healthcare system.
 //    - Instruction: Ensure the `@Service` annotation is applied to mark this class as a Spring-managed service.
+    private final PrescriptionRepository prescriptionRepository;
 
+    public PrescriptionService(PrescriptionRepository prescriptionRepository) {
+        this.prescriptionRepository = prescriptionRepository;
+    }
 // 2. **Constructor Injection for Dependencies**:
 //    - The `PrescriptionService` class depends on the `PrescriptionRepository` to interact with the database.
 //    - It is injected through the constructor, ensuring proper dependency management and enabling testing.
 //    - Instruction: Constructor injection is a good practice, ensuring that all necessary dependencies are available at the time of service initialization.
 
+    public Integer savePrescription(Prescription prescription) {
+        try {
+            Prescription existingPrescription = prescriptionRepository.findByAppointmentId(prescription.getAppointmentId());
+            if (existingPrescription != null) {
+                return 0; // Prescription already exists for this appointment
+            }
+            prescriptionRepository.save(prescription);
+            return 1; // Success
+        } catch (Exception e) {
+            // Log the error (you can use a logging framework like SLF4J)
+            System.err.println("Error saving prescription: " + e.getMessage());
+            return -1; // Failure
+        }
+    }
 // 3. **savePrescription Method**:
 //    - This method saves a new prescription to the database.
 //    - Before saving, it checks if a prescription already exists for the same appointment (using the appointment ID).
 //    - If a prescription exists, it returns a `400 Bad Request` with a message stating the prescription already exists.
 //    - If no prescription exists, it saves the new prescription and returns a `201 Created` status with a success message.
 //    - Instruction: Handle errors by providing appropriate status codes and messages, ensuring that multiple prescriptions for the same appointment are not saved.
-
+    public Prescription getPrescription(Long appointmentId) {
+        try {
+            return prescriptionRepository.findByAppointmentId(appointmentId).get(0);
+        } catch (Exception e) {
+            // Log the error (you can use a logging framework like SLF4J)
+            System.err.println("Error fetching prescription: " + e.getMessage());
+            return null; // Indicate an error occurred
+        }
+    }
 // 4. **getPrescription Method**:
 //    - Retrieves a prescription associated with a specific appointment based on the `appointmentId`.
 //    - If a prescription is found, it returns it within a map wrapped in a `200 OK` status.
