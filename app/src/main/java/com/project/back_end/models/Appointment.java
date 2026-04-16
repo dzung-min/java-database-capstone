@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
@@ -20,10 +21,12 @@ public class Appointment {
   private Long id;
 
   @ManyToOne
+  @JoinColumn(name = "doctor_id")
   @NotNull(message = "Doctor cannot be null")
   private Doctor doctor;
 
   @ManyToOne
+  @JoinColumn(name = "patient_id")
   @NotNull(message = "Patient cannot be null")
   private Patient patient;
 
@@ -33,7 +36,7 @@ public class Appointment {
   // - Represents the current status of the appointment. It is an integer where:
   // - 0 means the appointment is scheduled.
   // - 1 means the appointment has been completed.
-  @NotNull(message = "Status cannot be bull")
+  @NotNull(message = "Status cannot be null")
   private int status;
 
   // - It calculates the end time of the appointment by adding one hour to the
