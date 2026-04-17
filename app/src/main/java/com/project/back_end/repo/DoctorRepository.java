@@ -11,6 +11,7 @@ import com.project.back_end.models.Doctor;
 
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
+    public List<Doctor> findAll();
     public Doctor findByEmail(String email);
 
     @Query("SELECT d FROM Doctor d WHERE d.name LIKE CONCAT('%', :name, '%')")

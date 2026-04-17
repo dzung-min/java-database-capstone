@@ -2,7 +2,7 @@ package com.project.back_end.mvc;
 
 import org.springframework.stereotype.Controller;
 
-import com.project.back_end.services.Service;
+import com.project.back_end.services.Services;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class DashboardController {
-    private final Service service;
+    private final Services service;
 
-    public DashboardController(Service service) {
+    public DashboardController(Services service) {
         this.service = service;
     }
 

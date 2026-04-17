@@ -1,7 +1,11 @@
 package com.project.back_end.services;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.DTO.AppointmentDTO;
@@ -120,13 +124,31 @@ public class PatientService {
     // - Instruction: Ensure that the method correctly filters by doctor's name and
     // patient ID and handles any errors or invalid cases.
 
-    public List<AppointmentDTO> filterByDoctorAndCondition(Integer condition, String doctorName, Long patientId) {
+    public ResponseEntity<Map<String, Object>> filterByDoctorAndCondition(String condition, String doctorName, Long patientId) {
         try {
-            List<Appointment> appointments = appointmentRepository.filterByDoctorNameAndPatientIdAndStatus(doctorName,
-                    patientId, condition);
-            return appointments.stream()
+            List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+            if (condition != null) {
+                if (condition.equalsIgnoreCase("past")) {
+                    appointments = appointments.stream()
+                            .filter(appointment -> appointment.getAppointmentDate().isBefore(LocalDate.now()))
+                            .collect(Collectors.toList());
+                } else if (condition.equalsIgnoreCase("future")) {
+                    appointments = appointments.stream()
+                            .filter(appointment -> appointment.getAppointmentDate().isAfter(LocalDate.now()))
+                            .collect(Collectors.toList());
+                } else {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Invalid condition value"));
+                }
+            }
+            if (doctorName != null && !doctorName.isEmpty()) {
+                appointments = appointments.stream()
+                        .filter(appointment -> appointment.getDoctor().getName().equalsIgnoreCase(doctorName))
+                        .collect(Collectors.toList());
+            }  
+            List<AppointmentDTO> appointmentDTOs = appointments.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
+            return ResponseEntity.ok(Map.of("appointments", appointmentDTOs));
         } catch (Exception e) {
             return null; // or you could throw a custom exception
         }

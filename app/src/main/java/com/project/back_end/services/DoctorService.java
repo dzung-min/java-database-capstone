@@ -1,10 +1,7 @@
 package com.project.back_end.services;
 
 import java.time.LocalDate;
-import java.time.temporal.TemporalAccessor;
 import java.util.List;
-
-import org.springframework.data.mongodb.core.aggregation.ArrayOperators.In;
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.models.Appointment;

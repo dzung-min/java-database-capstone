@@ -18,7 +18,7 @@ import jakarta.transaction.Transactional;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final com.project.back_end.services.Service service;
+    private final com.project.back_end.services.Services service;
     private final TokenService tokenService;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
