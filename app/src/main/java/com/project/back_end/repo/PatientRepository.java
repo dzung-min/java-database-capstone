@@ -1,8 +1,8 @@
 package com.project.back_end.repo;
 
-import java.util.Optional;
-
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.project.back_end.models.Patient;
 
@@ -11,9 +11,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     public Patient findByEmail(String email);
 
-    public Patient findByEmailOrPhone(String email, String phone);
+    @Query("SELECT p FROM Patient p WHERE p.email = :email OR p.phoneNumber = :phone")
+    public Patient findByEmailOrPhone(@Param("email") String email, @Param("phone") String phone);
 
-    public Optional<Patient> findByPhoneNumber(String phoneNumber);
     // 1. Extend JpaRepository:
 //    - The repository extends JpaRepository<Patient, Long>, which provides basic CRUD functionality.
 //    - This allows the repository to perform operations like save, delete, update, and find without needing to implement these methods manually.

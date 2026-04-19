@@ -1,7 +1,12 @@
 package com.project.back_end.services;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.models.Appointment;
@@ -26,8 +31,7 @@ public class DoctorService {
     private final AppointmentRepository appointmentRepository;
     private final TokenService tokenService;
 
-    public DoctorService(DoctorRepository doctorRepository, AppointmentRepository appointmentRepository,
-            TokenService tokenService) {
+    public DoctorService(DoctorRepository doctorRepository, AppointmentRepository appointmentRepository, TokenService tokenService) {
         this.doctorRepository = doctorRepository;
         this.appointmentRepository = appointmentRepository;
         this.tokenService = tokenService;
@@ -57,14 +61,18 @@ public class DoctorService {
         if (doctor == null) {
             return Collections.emptyList(); // or throw an exception
         }
-        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndAppointmentDate(doctorId, date);
-        List<String> bookedTimeList = appointments.stream()
-                .map(appointment -> appointment.getAppointmentTime().toLocalTime().toString())
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndAppointmentTimeBetween(doctorId,
+                startOfDay, endOfDay);
+        List<String> bookedSlots = appointments.stream()
+                .map(appointment -> timeFormat(appointment.getAppointmentTime(), appointment.getEndTime()))
                 .toList();
-        List<String> availableTimeList = doctor.getAvailableTimes().stream()
-                .filter(time -> !bookedTimeList.contains(time))
-                .toList();
-        return availableTimeList;
+
+        List<String> timeSlots = doctor.getAvailableTimes();
+        timeSlots.removeAll(bookedSlots);
+        return timeSlots;
     }
     // 4. **getDoctorAvailability Method**:
     // - Retrieves the available time slots for a specific doctor on a particular
@@ -97,12 +105,8 @@ public class DoctorService {
     @Transactional
     public Integer updateDoctor(Doctor doctor) {
         try {
-            if (!doctorRepository.existsById(doctor.getId())) {
+            if (doctor.getId() == null || !doctorRepository.existsById(doctor.getId())) {
                 return -1; // Not found: Doctor does not exist
-            }
-            Doctor existingDoctor = doctorRepository.findByEmail(doctor.getEmail());
-            if (existingDoctor != null && !existingDoctor.getId().equals(doctor.getId())) {
-                return -1; // Conflict: Another doctor with the same email exists
             }
             doctorRepository.save(doctor);
             return 1; // Success
@@ -126,7 +130,6 @@ public class DoctorService {
     // - Instruction: Ensure that the collection is eagerly loaded, especially if
     // dealing with lazy-loaded relationships (e.g., available times).
 
-
     @Transactional
     public Integer deleteDoctor(Long doctorId) {
         try {
@@ -148,8 +151,15 @@ public class DoctorService {
     // - Instruction: Ensure the doctor and their appointments are deleted properly,
     // with error handling for internal issues.
 
-
-
+    public Map<String, String> validateDoctor(String email, String password) {
+        Doctor doctor = doctorRepository.findByEmail(email);
+        if (doctor != null && doctor.getPassword().equals(password)) {
+            String token = tokenService.generateToken(email);
+            return Map.of("token", token);
+        } else {
+            return Map.of("error", "Invalid email or password");
+        }
+    }
     // 9. **validateDoctor Method**:
     // - Validates a doctor's login by checking if the email and password match an
     // existing doctor record.
@@ -157,7 +167,6 @@ public class DoctorService {
     // returns an error message.
     // - Instruction: Make sure to handle invalid login attempts and password
     // mismatches properly with error responses.
-
 
     @Transactional
     public List<Doctor> findDoctorByName(String name) {
@@ -175,10 +184,7 @@ public class DoctorService {
     @Transactional
     public List<Doctor> filterDoctorsByNameSpecilityandTime(String name, String specialty, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findByNameContainingIgnoreCaseAndSpecialtyIgnoreCase(name, specialty);
-        List<Doctor> filteredDoctors = doctors.stream()
-                .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> isMatchTimePeriod(availableTime, amOrPm)))
-                .toList();
+        List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
         return filteredDoctors;
     }
     // 11. **filterDoctorsByNameSpecilityandTime Method**:
@@ -190,11 +196,16 @@ public class DoctorService {
     // as well as the specified time period.
 
     @Transactional
-    public List<Doctor> filterDoctorByTime(String amOrPm) {
-        List<Doctor> doctors = doctorRepository.findAll();
+    public List<Doctor> filterDoctorByTime(List<Doctor> doctors, String amOrPm) {
+        if (amOrPm == null || amOrPm.isEmpty()) {
+            return doctors; // No time filter applied, return all doctors
+        }
         List<Doctor> filteredDoctors = doctors.stream()
                 .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> isMatchTimePeriod(availableTime, amOrPm)))
+                        .anyMatch(availableTime -> {
+                            int time = Integer.parseInt(availableTime.substring(0, 2));
+                            return isMatchTimePeriod(time, amOrPm);
+                        }))
                 .toList();
         return filteredDoctors;
     }
@@ -208,10 +219,7 @@ public class DoctorService {
 
     public List<Doctor> filterDoctorByNameAndTime(String name, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findByNameLike(name);
-        List<Doctor> filteredDoctors = doctors.stream()
-                .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> isMatchTimePeriod(availableTime, amOrPm)))
-                .toList();
+        List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
         return filteredDoctors;
     }
     // 13. **filterDoctorByNameAndTime Method**:
@@ -234,10 +242,7 @@ public class DoctorService {
 
     public List<Doctor> filterDoctorByTimeAndSpecility(String specialty, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findBySpecialtyIgnoreCase(specialty);
-        List<Doctor> filteredDoctors = doctors.stream()
-                .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> isMatchTimePeriod(availableTime, amOrPm)))
-                .toList();
+        List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
         return filteredDoctors;
     }
     // 15. **filterDoctorByTimeAndSpecility Method**:
@@ -261,10 +266,7 @@ public class DoctorService {
 
     public List<Doctor> filterDoctorsByTime(String amOrPm) {
         List<Doctor> doctors = doctorRepository.findAll();
-        List<Doctor> filteredDoctors = doctors.stream()
-                .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> isMatchTimePeriod(availableTime, amOrPm)))
-                .toList();
+        List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
         return filteredDoctors;
     }
     // 17. **filterDoctorsByTime Method**:
@@ -274,12 +276,23 @@ public class DoctorService {
     // during the specified time period.
     // - Instruction: Ensure proper filtering logic to handle AM/PM time periods.
 
-    private boolean isMatchTimePeriod(String time, String amOrPm) {
+    private boolean isMatchTimePeriod(int time, String amOrPm) {
         if (amOrPm.equalsIgnoreCase("AM")) {
-            return time.toLowerCase().endsWith("am");
+            return time < 12; // Assuming time is in 24-hour format, AM is from 0 to 11
         } else if (amOrPm.equalsIgnoreCase("PM")) {
-            return time.toLowerCase().endsWith("pm");
+            return time >= 12; // PM is from 12 to 23
         }
         return false;
+    }
+
+    public Doctor getDoctorByEmail(String email) {
+        return doctorRepository.findByEmail(email);
+    }
+
+    private String timeFormat(LocalDateTime startTime, LocalDateTime endTime) {
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm");
+        String startTimeStr = startTime.toLocalTime().format(timeFormatter);
+        String endTimeStr = endTime.toLocalTime().format(timeFormatter);
+        return startTimeStr + " - " + endTimeStr;
     }
 }

@@ -17,7 +17,7 @@ public class Prescription {
   private String patientName;
 
   @NotNull(message = "Appointment Id cannot be null")
-  private String appointmentId;
+  private Long appointmentId;
 
   @NotNull(message = "Medication cannot be null")
   @Size(min = 3, max = 100, message = "Medication must be between 3 and 100 characters long")
@@ -34,7 +34,7 @@ public class Prescription {
 
   public Prescription(
       @NotNull(message = "Patient's name cannot be null") @Size(min = 3, max = 100, message = "Patient's name must be in between 3 and 100 characters long") String patientName,
-      @NotNull(message = "Appointment Id cannot be null") String appointmentId,
+      @NotNull(message = "Appointment Id cannot be null") Long appointmentId,
       @NotNull(message = "Medication cannot be null") @Size(min = 3, max = 100, message = "Medication must be between 3 and 100 characters long") String medication,
       @NotNull(message = "Dosage cannot be null") String dosage,
       @Size(max = 200, message = "Doctor's note cannot exceed 200 characters long") String doctorNotes) {
@@ -61,11 +61,11 @@ public class Prescription {
     this.patientName = patientName;
   }
 
-  public String getAppointmentId() {
+  public Long getAppointmentId() {
     return appointmentId;
   }
 
-  public void setAppointmentId(String appointmentId) {
+  public void setAppointmentId(Long appointmentId) {
     this.appointmentId = appointmentId;
   }
 

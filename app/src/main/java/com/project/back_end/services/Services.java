@@ -1,6 +1,6 @@
 package com.project.back_end.services;
 
-import java.time.LocalDateTime;
+import com.project.back_end.controllers.AdminController;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -18,26 +18,23 @@ import com.project.back_end.repo.PatientRepository;
 
 @Service
 public class Services {
-
-    private final TokenService tokenService;
     private final AdminRepository adminRepository;
+    private final TokenService tokenService;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final DoctorService doctorService;
     private final PatientService patientService;
 
-    public Services(TokenService tokenService, AdminRepository adminRepository,
-                   DoctorRepository doctorRepository, PatientRepository patientRepository,
-                   DoctorService doctorService, PatientService patientService) {
+    public Services(TokenService tokenService, DoctorRepository doctorRepository, PatientRepository patientRepository,
+            DoctorService doctorService, PatientService patientService, AdminController adminController, AdminRepository adminRepository) {
         this.tokenService = tokenService;
-        this.adminRepository = adminRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.doctorService = doctorService;
         this.patientService = patientService;
+        this.adminRepository = adminRepository;
+
     }
-
-
 
     // 1. **@Service Annotation**
     // The @Service annotation marks this class as a service component in Spring.
@@ -53,11 +50,11 @@ public class Services {
     // time.
 
     public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
-        if (tokenService.validateToken(token, user)) {
-            return ResponseEntity.ok(Map.of("message", "Token is valid"));
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token is invalid"));
+        if (!tokenService.validateToken(token, user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token is invalid"));
         }
+        return null; // Return null if the token is valid, allowing the caller to proceed with their
+                     // logic
     }
     // 3. **validateToken Method**
     // This method checks if the provided JWT token is valid for a specific user. It
@@ -74,13 +71,16 @@ public class Services {
                     String token = tokenService.generateToken(admin.getUsername());
                     return ResponseEntity.ok(Map.of("token", token));
                 } else {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Addmin credential is incorrect"));
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(Map.of("error", "Admin credential is incorrect"));
                 }
             } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Addmin credential is incorrect"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Admin credential is incorrect"));
             }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "An error occurred: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred: " + e.getMessage()));
         }
     }
     // 4. **validateAdmin Method**
@@ -97,21 +97,37 @@ public class Services {
     // This method ensures that only valid admin users can access secured parts of
     // the system.
 
-    public ResponseEntity<Map<String, Object>> filterDoctor(String name, String specialty, String date) {
+    public ResponseEntity<Map<String, Object>> filterDoctor(String name, String specialty, String time) {
+        List<Doctor> doctors;
         try {
-            List<Doctor> doctors = doctorService.getDoctors();
-            if (name != null) {
-                doctors = doctors.stream().filter(doctor -> doctor.getName().toLowerCase().contains(name.toLowerCase())).toList();
+            if (name != null && specialty != null && time != null) {
+                doctors = doctorService.filterDoctorsByNameSpecilityandTime(name, specialty, time);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (name != null && specialty != null) {
+                doctors = doctorService.filterDoctorByNameAndSpecility(name, specialty);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (name != null && time != null) {
+                doctors = doctorService.filterDoctorByNameAndTime(name, time);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (specialty != null && time != null) {
+                doctors = doctorService.filterDoctorByTimeAndSpecility(specialty, time);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (name != null) {
+                doctors = doctorService.findDoctorByName(name);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (specialty != null) {
+                doctors = doctorService.filterDoctorBySpecility(specialty);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else if (time != null) {
+                doctors = doctorService.filterDoctorsByTime(time);
+                return ResponseEntity.ok(Map.of("doctors", doctors));
+            } else {
+                doctors = doctorService.getDoctors();
+                return ResponseEntity.ok(Map.of("doctors", doctors));
             }
-            if (specialty != null) {
-                doctors = doctors.stream().filter(doctor -> doctor.getSpecialty().toLowerCase().contains(specialty.toLowerCase())).toList();
-            }
-            if (date != null) {
-                doctors = doctors.stream().filter(doctor -> doctor.getAvailableTimes().stream().anyMatch(time -> time.contains(date))).toList();
-            }
-            return ResponseEntity.ok(Map.of("doctors", doctors));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "An error occurred: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "An error occurred: " + e.getMessage()));
         }
     }
     // 5. **filterDoctor Method**
@@ -149,13 +165,8 @@ public class Services {
     // This logic prevents overlapping or invalid appointment bookings.
 
     public boolean validatePatient(Patient patient) {
-        if (patientRepository.findByEmail(patient.getEmail()) != null) {
-            return false; // Email already exists
-        }
-        if (patientRepository.(patient.getPhone()) != null) {
-            return false; // Phone number already exists
-        }
-        return true;
+        Patient existingPatient = patientRepository.findByEmailOrPhone(patient.getEmail(), patient.getPhone());
+        return existingPatient == null; // Return true if no existing patient is found, false otherwise
     }
 
     // 7. **validatePatient Method**

@@ -1,5 +1,7 @@
 package com.project.back_end.services;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.models.Prescription;
@@ -24,8 +26,8 @@ public class PrescriptionService {
 
     public Integer savePrescription(Prescription prescription) {
         try {
-            Prescription existingPrescription = prescriptionRepository.findByAppointmentId(prescription.getAppointmentId());
-            if (existingPrescription != null) {
+            List<Prescription> existingPrescriptions = prescriptionRepository.findByAppointmentId(prescription.getAppointmentId());
+            if (!existingPrescriptions.isEmpty()) {
                 return 0; // Prescription already exists for this appointment
             }
             prescriptionRepository.save(prescription);

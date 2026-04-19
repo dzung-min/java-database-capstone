@@ -2,15 +2,17 @@ package com.project.back_end.services;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Doctor;
 import com.project.back_end.repo.AppointmentRepository;
 import com.project.back_end.repo.DoctorRepository;
-import com.project.back_end.repo.PatientRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -18,23 +20,21 @@ import jakarta.transaction.Transactional;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final com.project.back_end.services.Services service;
-    private final TokenService tokenService;
-    private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, Service service, TokenService tokenService,
-            PatientRepository patientRepository, DoctorRepository doctorRepository) {
+    public AppointmentService(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository) {
         this.appointmentRepository = appointmentRepository;
-        this.service = service;
-        this.tokenService = tokenService;
-        this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
     }
 
     @Transactional
     public int bookAppointment(Appointment appointment) {
         try {
+            Doctor doctor = appointment.getDoctor();
+            boolean isDoctorAvailable = doctor.getAvailableTimes().contains(appointment.getAppointmentTime().toString());
+            if (!isDoctorAvailable) {
+                return 0; // Doctor not available at the specified time
+            }
             appointmentRepository.save(appointment);
             return 1; // Success
         } catch (Exception e) {
@@ -44,35 +44,35 @@ public class AppointmentService {
     }
 
     @Transactional
-    public String updateAppointment(Long appointmentId, Appointment updatedAppointment, Long patientId) {
+    public ResponseEntity<Map<String, String>> updateAppointment(Long appointmentId, Appointment updatedAppointment, Long patientId) {
         
         Appointment existingAppointment = appointmentRepository.findById(appointmentId).orElse(null);
         if (existingAppointment == null) {
-            return "Appointment not found.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Appointment not found."));
         }
 
         if (!existingAppointment.getPatient().getId().equals(updatedAppointment.getPatient().getId())) {
-            return "Patient ID does not match the appointment.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Patient ID does not match the appointment."));
         }   
 
         Doctor doctor = doctorRepository.findById(updatedAppointment.getDoctor().getId()).orElse(null);
         if (doctor == null) {
-            return "Doctor not found.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Doctor not found."));
         }
 
-        boolean isDoctorAvailable = doctorRepository.existsByDoctorAndAppointmentTime(doctor, updatedAppointment.getAppointmentTime());
+        boolean isDoctorAvailable = doctor.getAvailableTimes().contains(updatedAppointment.getAppointmentTime().toString());
 
         if (!isDoctorAvailable) {
-            return "Selected doctor is not available at the specified time.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Selected doctor is not available at the specified time."));
         }
 
          // If all validations pass, save the updated appointment
          try {
              appointmentRepository.save(updatedAppointment);
-             return "Appointment updated successfully.";
+             return ResponseEntity.ok(Map.of("message", "Appointment updated successfully."));
          } catch (Exception e) {
              // Log the exception (not shown here)
-             return "Failed to update the appointment.";
+             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Failed to update the appointment."));
          }
     }
 

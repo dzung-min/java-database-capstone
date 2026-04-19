@@ -29,13 +29,10 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
-    private final TokenService tokenService;
 
-    public PatientService(PatientRepository patientRepository, AppointmentRepository appointmentRepository,
-            TokenService tokenService) {
+    public PatientService(PatientRepository patientRepository, AppointmentRepository appointmentRepository) {
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
-        this.tokenService = tokenService;
     }
     // 2. **Constructor Injection for Dependencies**:
     // - The `PatientService` class has dependencies on `PatientRepository`,
@@ -215,5 +212,9 @@ public class PatientService {
                 appointment.getAppointmentTime(),
                 appointment.getStatus());
 
+    }
+
+    public Patient getPatientByEmail(String patientEmail) {
+        return patientRepository.findByEmail(patientEmail);
     }
 }

@@ -15,21 +15,25 @@ import jakarta.transaction.Transactional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
-    public List<Appointment> findByDoctorIdAndAppointmentTimeBetween(Long doctorId, LocalDateTime start,
-            LocalDateTime end);
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.doctor d LEFT JOIN FETCH d.availableTimes WHERE d.id = :doctorId AND a.appointmentTime BETWEEN :start AND :end")
+    public List<Appointment> findByDoctorIdAndAppointmentTimeBetween(@Param("doctorId") Long doctorId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    public List<Appointment> findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(Long doctorId,
-            String patientName, LocalDateTime start, LocalDateTime end);
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.doctor d LEFT JOIN FETCH a.patient p WHERE d.id = :doctorId AND p.name LIKE CONCAT('%', :patientName, '%') AND a.appointmentTime BETWEEN :start AND :end")
+    public List<Appointment> findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
+            @Param("doctorId") Long doctorId,
+            @Param("patientName") String patientName, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    public List<Appointment> findByDoctorIdAndAppointmentDate(Long doctorId, LocalDate appointmentDate);
+    @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId AND DATE(a.appointmentTime) = :appointmentDate")
+    public List<Appointment> findByDoctorIdAndAppointmentDate(@Param("doctorId") Long doctorId, @Param("appointmentDate") LocalDate appointmentDate);
 
     @Modifying
     @Transactional
-    public void deleteAllByDoctorId(Long doctorId);
+    public void deleteAllByDoctorId(@Param("doctorId") Long doctorId);
 
-    public List<Appointment> findByPatientId(Long patientId);
+    public List<Appointment> findByPatientId(@Param("patientId") Long patientId);
 
-    public List<Appointment> findByPatient_IdAndStatusOrderByAppointmentTimeAsc(Long patientId, int status);
+    @Query("SELECT a FROM Appointment a WHERE a.patient.id = :patientId AND a.status = :status ORDER BY a.appointmentTime ASC")
+    public List<Appointment> findByPatient_IdAndStatusOrderByAppointmentTimeAsc(@Param("patientId") Long patientId, @Param("status") int status);
 
     @Query("SELECT a FROM Appointment a JOIN a.doctor d WHERE d.name LIKE %:doctorName% AND a.patient.id = :patientId")
     List<Appointment> filterByDoctorNameAndPatientId(@Param("doctorName") String doctorName,
@@ -55,7 +59,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     // JpaRepository<Appointment, Long> {}
 
     // 2. Custom Query Methods:
-        
+
     // - **findByDoctorIdAndAppointmentTimeBetween**:
     // - This method retrieves a list of appointments for a specific doctor within a
     // given time range.

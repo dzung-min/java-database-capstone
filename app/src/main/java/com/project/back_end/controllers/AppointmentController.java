@@ -1,7 +1,87 @@
 package com.project.back_end.controllers;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.project.back_end.models.Appointment;
+import com.project.back_end.models.Doctor;
+import com.project.back_end.models.Patient;
+import com.project.back_end.services.AppointmentService;
+import com.project.back_end.services.DoctorService;
+import com.project.back_end.services.PatientService;
+import com.project.back_end.services.Services;
+import com.project.back_end.services.TokenService;
+import org.springframework.web.bind.annotation.PutMapping;
+
+
+@RestController
+@RequestMapping("/appointments")
 public class AppointmentController {
+    private final AppointmentService appointmentService;
+    private final Services service;
+    private final TokenService tokenService;
+    private final DoctorService doctorService;
+    private final PatientService patientService;
+
+    public AppointmentController(AppointmentService appointmentService, Services service, TokenService tokenService, DoctorService doctorService, PatientService patientService) {
+        this.appointmentService = appointmentService;
+        this.service = service;
+        this.tokenService = tokenService;
+        this.doctorService = doctorService;
+        this.patientService = patientService;
+    }
+
+    @GetMapping("/{date}/{patientName}/{token}")
+    public ResponseEntity<Map<String, Object>> getAppointments(@PathVariable String date, @PathVariable String patientName, @PathVariable String token) {
+        ResponseEntity<Map<String, String>> response = service.validateToken(token, "doctor");
+        if ((response.getStatusCode() == HttpStatus.UNAUTHORIZED)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid or expired token."));
+        }
+        String doctorEmail = tokenService.extractIdentifier(token);
+        Doctor doctor = doctorService.getDoctorByEmail(doctorEmail);
+        List<Appointment> appointments = appointmentService.getAppointments(doctor.getId(), LocalDate.parse(date), patientName);
+        return ResponseEntity.ok(Map.of("appointments", appointments));
+    }
+
+    @PostMapping("/{token}")
+    public ResponseEntity<Map<String, String>> bookAppointment(@RequestBody Appointment appointment, @PathVariable String token) {
+        ResponseEntity<Map<String, String>> response = service.validateToken(token, "patient");
+        if ((response.getStatusCode() == HttpStatus.UNAUTHORIZED)) {
+            return response; // Return the unauthorized response if token validation fails
+        }
+        int isBooked = appointmentService.bookAppointment(appointment);
+        if (isBooked == 1) {
+            return ResponseEntity.ok(Map.of("message", "Appointment booked successfully."));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Failed to book appointment. Doctor ID may be invalid or slot may already be taken."));
+        }
+    }
+
+    @PutMapping("/{token}")
+    public ResponseEntity<Map<String, String>> updateAppointment(@PathVariable String token, @RequestBody Appointment updatedAppointment) {
+        ResponseEntity<Map<String, String>> response = service.validateToken(token, "patient");
+        if ((response.getStatusCode() == HttpStatus.UNAUTHORIZED)) {
+            return response; // Return the unauthorized response if token validation fails
+        }
+        String patientEmail = tokenService.extractIdentifier(token);
+        Patient patientFromToken = patientService.getPatientByEmail(patientEmail);
+        ResponseEntity<Map<String, String>> updateResponse = appointmentService.updateAppointment(patientFromToken.getId(), updatedAppointment, patientFromToken.getId());
+        if (updateResponse.getStatusCode() == HttpStatus.OK) {
+            return ResponseEntity.ok(Map.of("message", "Appointment updated successfully."));
+        } else {
+            return updateResponse; // Return the error response from the service
+        }
+    }
 
 // 1. Set Up the Controller Class:
 //    - Annotate the class with `@RestController` to define it as a REST API controller.
