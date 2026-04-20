@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: npm install -g eslint stylelint htmlhint
       - name: Run ESLint
-        run: eslint 'app/src/main/resources/static/js/**/*.js' --max-warnings=0
+        uses: stefanoeb/eslint-action@1.0.2
       - name: Run Stylelint
         run: stylelint 'app/src/main/resources/static/css/**/*.css' --max-warnings=0
       - name: Run HTMLHint
