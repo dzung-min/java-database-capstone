@@ -11,7 +11,7 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     public Patient findByEmail(String email);
 
-    @Query("SELECT p FROM Patient p WHERE p.email = :email OR p.phoneNumber = :phone")
+    @Query("SELECT p FROM Patient p WHERE p.email = :email OR p.phone = :phone")
     public Patient findByEmailOrPhone(@Param("email") String email, @Param("phone") String phone);
 
     // 1. Extend JpaRepository:

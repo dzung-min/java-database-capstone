@@ -1,6 +1,8 @@
 package com.project.back_end.services;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.project.back_end.DTO.AppointmentDTO;
 import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Doctor;
 import com.project.back_end.repo.AppointmentRepository;
@@ -21,20 +24,17 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
+    private final TokenService tokenService;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository) {
+    public AppointmentService(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository, TokenService tokenService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
+        this.tokenService = tokenService;
     }
 
     @Transactional
     public int bookAppointment(Appointment appointment) {
         try {
-            Doctor doctor = appointment.getDoctor();
-            boolean isDoctorAvailable = doctor.getAvailableTimes().contains(appointment.getAppointmentTime().toString());
-            if (!isDoctorAvailable) {
-                return 0; // Doctor not available at the specified time
-            }
             appointmentRepository.save(appointment);
             return 1; // Success
         } catch (Exception e) {
@@ -44,67 +44,101 @@ public class AppointmentService {
     }
 
     @Transactional
-    public ResponseEntity<Map<String, String>> updateAppointment(Long appointmentId, Appointment updatedAppointment, Long patientId) {
-        
+    public ResponseEntity<Map<String, String>> updateAppointment(Long appointmentId, Appointment updatedAppointment,
+            Long patientId) {
+
         Appointment existingAppointment = appointmentRepository.findById(appointmentId).orElse(null);
         if (existingAppointment == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Appointment not found."));
         }
 
-        if (!existingAppointment.getPatient().getId().equals(updatedAppointment.getPatient().getId())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Patient ID does not match the appointment."));
-        }   
+        if (!(existingAppointment.getPatient().getId() == updatedAppointment.getPatient().getId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Patient ID does not match the appointment."));
+        }
 
         Doctor doctor = doctorRepository.findById(updatedAppointment.getDoctor().getId()).orElse(null);
         if (doctor == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Doctor not found."));
         }
 
-        boolean isDoctorAvailable = doctor.getAvailableTimes().contains(updatedAppointment.getAppointmentTime().toString());
+        boolean isDoctorAvailable = doctor.getAvailableTimes().stream().map(time -> time.split("-")[0]).toList()
+                .contains(updatedAppointment.getAppointmentTime().toLocalTime().toString());
 
         if (!isDoctorAvailable) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Selected doctor is not available at the specified time."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Selected doctor is not available at the specified time."));
         }
 
-         // If all validations pass, save the updated appointment
-         try {
-             appointmentRepository.save(updatedAppointment);
-             return ResponseEntity.ok(Map.of("message", "Appointment updated successfully."));
-         } catch (Exception e) {
-             // Log the exception (not shown here)
-             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Failed to update the appointment."));
-         }
+        // If all validations pass, save the updated appointment
+        try {
+            appointmentRepository.save(updatedAppointment);
+            return ResponseEntity.ok(Map.of("message", "Appointment updated successfully."));
+        } catch (Exception e) {
+            // Log the exception (not shown here)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to update the appointment."));
+        }
     }
 
     @Transactional
-    public String cancelAppointment(Long appointmentId, Long patientId) {
+    public ResponseEntity<Map<String, String>> cancelAppointment(Long appointmentId, Long patientId) {
         Appointment existingAppointment = appointmentRepository.findById(appointmentId).orElse(null);
         if (existingAppointment == null) {
-            return "Appointment not found.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Appointment not found."));
         }
         Long appointmentPatientId = existingAppointment.getPatient().getId();
         if (!appointmentPatientId.equals(patientId)) {
-            return "Patient ID does not match the appointment.";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Patient ID does not match the appointment."));
         }
         try {
             appointmentRepository.delete(existingAppointment);
-            return "Appointment canceled successfully.";
+            return ResponseEntity.ok(Map.of("message", "Appointment canceled successfully."));
         } catch (Exception e) {
             // Log the exception (not shown here)
-            return "Failed to cancel the appointment.";
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to cancel the appointment."));
         }
     }
 
     @Transactional
-    public List<Appointment> getAppointments(Long doctorId, LocalDate date, String patientName) {
-        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndAppointmentDate(doctorId, date);
-        // Further filter by patient name if provided
-        if (patientName != null && !patientName.trim().isEmpty()) {
-            appointments = appointments.stream()
-                    .filter(appointment -> appointment.getPatient().getName().toLowerCase().contains(patientName.toLowerCase()))
-                    .collect(Collectors.toList());
+    public List<AppointmentDTO> getAppointments(String patientName, LocalDate date, String token) {
+        String extractedEmail = tokenService.extractIdentifier(token);
+        Long doctorId = doctorRepository.findByEmail(extractedEmail).getId();
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+        List<Appointment> appointments;
+
+        if (patientName.equals("null")) {
+            // If patientName is null or empty, fetch all appointments for that date
+
+            appointments = appointmentRepository
+                    .findByDoctorIdAndAppointmentTimeBetween(doctorId, startOfDay, endOfDay);
+        } else {
+            // Filter by patient name
+            appointments = appointmentRepository
+                    .findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
+                            doctorId, patientName, startOfDay, endOfDay);
         }
-        return appointments;
+
+        List<AppointmentDTO> appointmentDTOs = appointments.stream()
+                .map(app -> new AppointmentDTO(
+                        app.getId(),
+                        app.getDoctor().getId(), // Simplified doctor info
+                        app.getDoctor().getName(),
+                        app.getPatient().getId(),
+                        app.getPatient().getName(),
+                        app.getPatient().getEmail(),
+                        app.getPatient().getPhone(),
+                        app.getPatient().getAddress(),
+                        app.getAppointmentTime(),
+                        app.getStatus()))
+                .collect(Collectors.toList());
+
+        return appointmentDTOs;
+
     }
 
     @Transactional
@@ -114,7 +148,7 @@ public class AppointmentService {
             return "Appointment status updated successfully.";
         } catch (Exception e) {
             // Log the exception (not shown here)
-            return "Failed to update appointment status.";  
+            return "Failed to update appointment status.";
         }
     }
 }

@@ -16,7 +16,7 @@ function renderHeader() {
 
   let headerContent = `<header class="header">
          <div class="logo-section">
-           <img src="./assets/images/logo/logo.png" alt="Hospital CRM Logo" class="logo-img">
+           <img src="../assets/images/logo/logo.png" alt="Hospital CRM Logo" class="logo-img">
            <span class="logo-title">Hospital CMS</span>
          </div>
          <nav>`;
@@ -51,6 +51,17 @@ function renderHeader() {
 }
 
 renderHeader();
+
+function logout() {
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("token");
+  window.location.href = "/";
+}
+
+function logoutPatient() {
+  localStorage.removeItem("token");
+  window.location.href = "/pages/loggedPatientDashboard.html";
+}
 
 
 /*

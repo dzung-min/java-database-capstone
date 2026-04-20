@@ -17,23 +17,25 @@
 
             <main class="main-content">
                 <h2>Select Your Role</h2>
-                <button id="adminLogin">Admin</button>
-                <button id="doctorLogin">Doctor</button>
-                <button>Patient</button>
+                <button id="adminLogin" onclick="selectRole('admin')">Admin</button>
+                <button id="doctorLogin" onclick="selectRole('doctor')">Doctor</button>
+                <button id="patientLogin" onclick="selectRole('patient')">Patient</button>
             </main>
             <div id="footer"></div>
         </div>
     </div>
-        <div id="modal" class="modal">
-      <span id="closeModal" class="close">&times;</span>
-      <div id="modal-body"></div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
     </div>
     <script src="./js/util.js" defer></script>
     <script src="./js/render.js" defer></script>
     <script src="./js/components/header.js" defer></script>
     <script src="./js/components/footer.js" defer></script>
-    
-    <script type="module" src="./js/services/adminDashboard.js"></script>
+
+    <script type="module" src="./js/adminDashboard.js"></script>
     <script type="module" src="./js/components/doctorCard.js"></script>
     <script type="module" src="./js/services/index.js"></script>
 </body>

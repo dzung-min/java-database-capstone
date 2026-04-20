@@ -6,7 +6,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.project.back_end.models.Appointment;
@@ -70,9 +73,11 @@ public class DoctorService {
                 .map(appointment -> timeFormat(appointment.getAppointmentTime(), appointment.getEndTime()))
                 .toList();
 
-        List<String> timeSlots = doctor.getAvailableTimes();
-        timeSlots.removeAll(bookedSlots);
-        return timeSlots;
+        List<String> availableSlots = doctor.getAvailableTimes().stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+        availableSlots = availableSlots.stream().filter(slot -> !bookedSlots.contains(slot)).toList();
+        return availableSlots;
     }
     // 4. **getDoctorAvailability Method**:
     // - Retrieves the available time slots for a specific doctor on a particular
@@ -122,7 +127,9 @@ public class DoctorService {
 
     @Transactional
     public List<Doctor> getDoctors() {
-        return doctorRepository.findAll();
+        List<Doctor> doctors = doctorRepository.findAll();
+        doctors.forEach(doctor -> doctor.getAvailableTimes().size()); // Ensure available times are loaded
+        return doctors;
     }
     // 7. **getDoctors Method**:
     // - Fetches all doctors from the database. It is marked with `@Transactional`
@@ -151,13 +158,13 @@ public class DoctorService {
     // - Instruction: Ensure the doctor and their appointments are deleted properly,
     // with error handling for internal issues.
 
-    public Map<String, String> validateDoctor(String email, String password) {
+    public ResponseEntity<Map<String, String>> validateDoctor(String email, String password) {
         Doctor doctor = doctorRepository.findByEmail(email);
         if (doctor != null && doctor.getPassword().equals(password)) {
             String token = tokenService.generateToken(email);
-            return Map.of("token", token);
+            return ResponseEntity.status(HttpStatus.OK).body(Map.of("token", token));
         } else {
-            return Map.of("error", "Invalid email or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
         }
     }
     // 9. **validateDoctor Method**:
@@ -171,6 +178,7 @@ public class DoctorService {
     @Transactional
     public List<Doctor> findDoctorByName(String name) {
         List<Doctor> doctors = doctorRepository.findByNameLike(name);
+        doctors.forEach(doctor -> doctor.getAvailableTimes().size()); // Ensure available times are loaded
         return doctors;
     }
     // 10. **findDoctorByName Method**:
@@ -185,6 +193,7 @@ public class DoctorService {
     public List<Doctor> filterDoctorsByNameSpecilityandTime(String name, String specialty, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findByNameContainingIgnoreCaseAndSpecialtyIgnoreCase(name, specialty);
         List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
+        filteredDoctors.forEach(doctor -> doctor.getAvailableTimes().size()); // Ensure available times are loaded
         return filteredDoctors;
     }
     // 11. **filterDoctorsByNameSpecilityandTime Method**:
@@ -197,16 +206,24 @@ public class DoctorService {
 
     @Transactional
     public List<Doctor> filterDoctorByTime(List<Doctor> doctors, String amOrPm) {
-        if (amOrPm == null || amOrPm.isEmpty()) {
-            return doctors; // No time filter applied, return all doctors
-        }
         List<Doctor> filteredDoctors = doctors.stream()
-                .filter(doctor -> doctor.getAvailableTimes().stream()
-                        .anyMatch(availableTime -> {
-                            int time = Integer.parseInt(availableTime.substring(0, 2));
-                            return isMatchTimePeriod(time, amOrPm);
-                        }))
-                .toList();
+        .filter(doctor -> {
+            if (amOrPm.equals("null"))
+                return true;
+
+            boolean isAM = amOrPm.equalsIgnoreCase("am");
+            return doctor.getAvailableTimes().stream().anyMatch(slot -> {
+                try {
+                    String startHourStr = slot.split("-")[0].split(":")[0]; // e.g. "09"
+                    int hour = Integer.parseInt(startHourStr);
+                    return isAM ? hour < 12 : hour >= 12;
+                } catch (Exception e) {
+                    return false; // Skip invalid time slots
+                }
+            });
+        })
+        .collect(Collectors.toList());
+        filteredDoctors.forEach(doctor -> doctor.getAvailableTimes().size()); // Ensure available times are loaded
         return filteredDoctors;
     }
     // 12. **filterDoctorByTime Method**:
@@ -217,6 +234,7 @@ public class DoctorService {
     // - Instruction: Ensure that the time filtering logic correctly handles both AM
     // and PM time slots and edge cases.
 
+    @Transactional
     public List<Doctor> filterDoctorByNameAndTime(String name, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findByNameLike(name);
         List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
@@ -229,8 +247,10 @@ public class DoctorService {
     // - Instruction: Ensure that the method correctly filters doctors based on the
     // given name and time of day (AM/PM).
 
+    @Transactional
     public List<Doctor> filterDoctorByNameAndSpecility(String name, String specialty) {
         List<Doctor> doctors = doctorRepository.findByNameContainingIgnoreCaseAndSpecialtyIgnoreCase(name, specialty);
+        doctors.forEach(doctor -> doctor.getAvailableTimes().size()); // Ensure available times are loaded
         return doctors;
     }
     // 14. **filterDoctorByNameAndSpecility Method**:
@@ -240,6 +260,7 @@ public class DoctorService {
     // - Instruction: Ensure that both name and specialty are considered when
     // filtering doctors.
 
+    @Transactional
     public List<Doctor> filterDoctorByTimeAndSpecility(String specialty, String amOrPm) {
         List<Doctor> doctors = doctorRepository.findBySpecialtyIgnoreCase(specialty);
         List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
@@ -253,6 +274,7 @@ public class DoctorService {
     // - Instruction: Ensure the time filtering is accurately applied based on the
     // given specialty and time period (AM/PM).
 
+    @Transactional
     public List<Doctor> filterDoctorBySpecility(String specialty) {
         List<Doctor> doctors = doctorRepository.findBySpecialtyIgnoreCase(specialty);
         return doctors;
@@ -264,6 +286,7 @@ public class DoctorService {
     // - Instruction: Make sure the filtering logic works for case-insensitive
     // specialty matching.
 
+    @Transactional
     public List<Doctor> filterDoctorsByTime(String amOrPm) {
         List<Doctor> doctors = doctorRepository.findAll();
         List<Doctor> filteredDoctors = filterDoctorByTime(doctors, amOrPm);
@@ -276,14 +299,6 @@ public class DoctorService {
     // during the specified time period.
     // - Instruction: Ensure proper filtering logic to handle AM/PM time periods.
 
-    private boolean isMatchTimePeriod(int time, String amOrPm) {
-        if (amOrPm.equalsIgnoreCase("AM")) {
-            return time < 12; // Assuming time is in 24-hour format, AM is from 0 to 11
-        } else if (amOrPm.equalsIgnoreCase("PM")) {
-            return time >= 12; // PM is from 12 to 23
-        }
-        return false;
-    }
 
     public Doctor getDoctorByEmail(String email) {
         return doctorRepository.findByEmail(email);

@@ -1,5 +1,3 @@
-/* This is the style sheet for global change across the files. */
-
 /* style.css */
 .header {
     display: flex;
@@ -14,7 +12,13 @@
   }
   
   /* Logo section with image + title */
-  .logo-section{
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-link{
     display: flex;
     align-items: center;
     gap: 10px;
@@ -33,7 +37,6 @@
     font-size: 20px;
     font-weight: bold;
     color: #333;
-    display: block;
   }
   
   /* Nav links styling */
@@ -163,7 +166,7 @@
   }
   
 
-  #modal {
+  .modal {
     display: none;
     position: fixed;
     z-index: 999;
@@ -175,7 +178,7 @@
     background-color: rgba(0,0,0,0.6);
   }
   
-  #modal-body {
+  .modal-content {
     background-color: white;
     margin: auto;
     padding: 30px;
@@ -184,7 +187,7 @@
     position: relative;
   }
   
-  #modal-body h2{
+  .modal-content h2{
     font-size: 32px;
   }
 
@@ -380,4 +383,3 @@
   margin-right: 0.5rem;
   accent-color: #015c5db8; 
 }
-

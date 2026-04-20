@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +43,8 @@ public class PatientService {
     // - Instruction: Ensure constructor injection is used for all the required
     // dependencies.
 
+    @Modifying
+    @Transactional
     public Integer createPatient(Patient patient) {
         try {
             patientRepository.save(patient);
@@ -61,7 +64,7 @@ public class PatientService {
     // caught and logged appropriately.
 
     @Transactional
-    public List<AppointmentDTO> getPatientAppointment(Long patientId, String token) {
+    public List<AppointmentDTO> getPatientAppointment(Long patientId) {
         try {
             List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
             List<AppointmentDTO> appointmentDTOs = appointments.stream()
@@ -124,7 +127,7 @@ public class PatientService {
     public ResponseEntity<Map<String, Object>> filterByDoctorAndCondition(String condition, String doctorName, Long patientId) {
         try {
             List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
-            if (condition != null) {
+            if (!condition.equals("null")) {
                 if (condition.equalsIgnoreCase("past")) {
                     appointments = appointments.stream()
                             .filter(appointment -> appointment.getAppointmentDate().isBefore(LocalDate.now()))
@@ -133,11 +136,9 @@ public class PatientService {
                     appointments = appointments.stream()
                             .filter(appointment -> appointment.getAppointmentDate().isAfter(LocalDate.now()))
                             .collect(Collectors.toList());
-                } else {
-                    return ResponseEntity.badRequest().body(Map.of("message", "Invalid condition value"));
                 }
             }
-            if (doctorName != null && !doctorName.isEmpty()) {
+            if (!doctorName.equals("null")) {
                 appointments = appointments.stream()
                         .filter(appointment -> appointment.getDoctor().getName().equalsIgnoreCase(doctorName))
                         .collect(Collectors.toList());

@@ -1,4 +1,17 @@
 services:
+  backend:
+    build: ./app
+    container_name: backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - mongodb
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/cms
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+      - SPRING_MONGODB_URI=mongodb://user:pass@mongodb:27017/prescriptions
   mysql:
     image: mysql:latest
     container_name: mysql_db

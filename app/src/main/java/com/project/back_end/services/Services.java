@@ -1,6 +1,5 @@
 package com.project.back_end.services;
 
-import com.project.back_end.controllers.AdminController;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -26,7 +25,7 @@ public class Services {
     private final PatientService patientService;
 
     public Services(TokenService tokenService, DoctorRepository doctorRepository, PatientRepository patientRepository,
-            DoctorService doctorService, PatientService patientService, AdminController adminController, AdminRepository adminRepository) {
+            DoctorService doctorService, PatientService patientService, AdminRepository adminRepository) {
         this.tokenService = tokenService;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
@@ -49,12 +48,11 @@ public class Services {
     // and ensures that all required dependencies are provided at object creation
     // time.
 
-    public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
-        if (!tokenService.validateToken(token, user)) {
+    public ResponseEntity<Map<String, String>> validateToken(String token, String role) {
+        if (!tokenService.validateToken(token, role)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token is invalid"));
         }
-        return null; // Return null if the token is valid, allowing the caller to proceed with their
-                     // logic
+        return ResponseEntity.ok(Map.of("message", "Token is valid"));
     }
     // 3. **validateToken Method**
     // This method checks if the provided JWT token is valid for a specific user. It
@@ -97,37 +95,27 @@ public class Services {
     // This method ensures that only valid admin users can access secured parts of
     // the system.
 
-    public ResponseEntity<Map<String, Object>> filterDoctor(String name, String specialty, String time) {
-        List<Doctor> doctors;
+    public List<Doctor> filterDoctors(String name, String specialty, String time) {
         try {
-            if (name != null && specialty != null && time != null) {
-                doctors = doctorService.filterDoctorsByNameSpecilityandTime(name, specialty, time);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (name != null && specialty != null) {
-                doctors = doctorService.filterDoctorByNameAndSpecility(name, specialty);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (name != null && time != null) {
-                doctors = doctorService.filterDoctorByNameAndTime(name, time);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (specialty != null && time != null) {
-                doctors = doctorService.filterDoctorByTimeAndSpecility(specialty, time);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (name != null) {
-                doctors = doctorService.findDoctorByName(name);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (specialty != null) {
-                doctors = doctorService.filterDoctorBySpecility(specialty);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
-            } else if (time != null) {
-                doctors = doctorService.filterDoctorsByTime(time);
-                return ResponseEntity.ok(Map.of("doctors", doctors));
+            if (!name.equals("null") && !specialty.equals("null") && !time.equals("null")) {
+                return doctorService.filterDoctorsByNameSpecilityandTime(name, specialty, time);
+            } else if (!name.equals("null") && !specialty.equals("null")) {
+                return doctorService.filterDoctorByNameAndSpecility(name, specialty);
+            } else if (!name.equals("null") && !time.equals("null")) {
+                return doctorService.filterDoctorByNameAndTime(name, time);
+            } else if (!specialty.equals("null") && !time.equals("null")) {
+                return doctorService.filterDoctorByTimeAndSpecility(specialty, time);
+            } else if (!name.equals("null")) {
+                return doctorService.findDoctorByName(name);
+            } else if (!specialty.equals("null")) {
+                return doctorService.filterDoctorBySpecility(specialty);
+            } else if (!time.equals("null")) {
+                return doctorService.filterDoctorsByTime(time);
             } else {
-                doctors = doctorService.getDoctors();
-                return ResponseEntity.ok(Map.of("doctors", doctors));
+                return doctorService.getDoctors();
             }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "An error occurred: " + e.getMessage()));
+            throw new RuntimeException("An error occurred while filtering doctors: " + e.getMessage());
         }
     }
     // 5. **filterDoctor Method**
